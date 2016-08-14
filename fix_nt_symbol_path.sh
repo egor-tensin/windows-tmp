@@ -13,9 +13,11 @@
 
 # usage: ./fix_nt_symbol_path.sh [-h|--help] [-y|--yes] [-d|--dir TMP_DIR]
 
-dump() (
-    set -o errexit -o nounset -o pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
+dump() {
     local prefix="${FUNCNAME[0]}"
 
     if [ "${#FUNCNAME[@]}" -gt 1 ]; then
@@ -26,20 +28,16 @@ dump() (
         echo "$prefix: $1" || true
         shift
     done
-)
+}
 
-str_tolower() (
-    set -o errexit -o nounset -o pipefail
-
+str_tolower() {
     while [ "$#" -ne 0 ]; do
         echo "$1" | tr '[:upper:]' '[:lower:]'
         shift
     done
-)
+}
 
-str_contains() (
-    set -o errexit -o nounset -o pipefail
-
+str_contains() {
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} STR SUB"
         return 1
@@ -50,13 +48,11 @@ str_contains() (
     sub="$( printf '%q' "$2" )"
 
     test "$str" != "${str#*$sub}"
-)
+}
 
-path_separator=';'
+readonly path_separator=';'
 
-path_contains() (
-    set -o errexit -o nounset -o pipefail
-
+path_contains() {
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
         return 1
@@ -79,11 +75,9 @@ path_contains() (
     done
 
     return 1
-)
+}
 
-path_append() (
-    set -o errexit -o nounset -o pipefail
-
+path_append() {
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
         return 1
@@ -99,11 +93,9 @@ path_append() (
             echo "$path_separator$path_to_add"
         fi
     fi
-)
+}
 
-prompt_to_continue() (
-    set -o errexit -o nounset -o pipefail
-
+prompt_to_continue() {
     local prefix="${FUNCNAME[0]}"
     if [ "${#FUNCNAME[@]}" -gt 1 ]; then
         prefix="${FUNCNAME[1]}"
@@ -120,7 +112,7 @@ prompt_to_continue() (
             *)     continue ;;
         esac
     done
-)
+}
 
 ensure_reg_available() {
     if command -v reg.exe > /dev/null; then
@@ -131,9 +123,7 @@ ensure_reg_available() {
     fi
 }
 
-registry_set_string() (
-    set -o errexit -o nounset -o pipefail
-
+registry_set_string() {
     if [ "$#" -ne 3 ]; then
         echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA"
         return 1
@@ -146,11 +136,9 @@ registry_set_string() (
     local value_data="$3"
 
     reg.exe add "$key_path" /v "$value_name" /t REG_SZ /d "$value_data" /f > /dev/null
-)
+}
 
-fix_nt_symbol_path() (
-    set -o errexit -o nounset -o pipefail
-
+fix_nt_symbol_path() {
     local tmp_dir
     tmp_dir="$( cygpath -aw "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" )"
 
@@ -226,6 +214,6 @@ fix_nt_symbol_path() (
     fi
 
     registry_set_string 'HKCU\Environment' '_NT_SYMBOL_PATH' "$new_value"
-)
+}
 
 fix_nt_symbol_path "$@"

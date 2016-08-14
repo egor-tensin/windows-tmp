@@ -13,61 +13,85 @@
 
 # usage: ./fix_nt_symbol_path.sh [-h|--help] [-y|--yes] [-d|--dir TMP_DIR]
 
-dump() {
+dump() (
+    set -o errexit -o nounset -o pipefail
+
     local prefix="${FUNCNAME[0]}"
+
     if [ "${#FUNCNAME[@]}" -gt 1 ]; then
         prefix="${FUNCNAME[1]}"
     fi
+
     while [ "$#" -ne 0 ]; do
-        echo "$prefix: $1"
+        echo "$prefix: $1" || true
         shift
     done
-}
+)
 
-str_tolower() {
+str_tolower() (
+    set -o errexit -o nounset -o pipefail
+
     while [ "$#" -ne 0 ]; do
         echo "$1" | tr '[:upper:]' '[:lower:]'
         shift
     done
-}
+)
 
-str_contains() {
+str_contains() (
+    set -o errexit -o nounset -o pipefail
+
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} STR SUB"
         return 1
     fi
+
     local str="$1"
-    local sub="$( printf '%q' "$2" )"
+    local sub
+    sub="$( printf '%q' "$2" )"
+
     test "$str" != "${str#*$sub}"
-}
+)
 
 path_separator=';'
 
-path_contains() {
+path_contains() (
+    set -o errexit -o nounset -o pipefail
+
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
         return 1
     fi
-    local env_value="$( str_tolower "$1" )"
-    local path_to_add="$( str_tolower "$2" )"
-    local -a env_paths=()
-    IFS="$path_separator" read -ra env_paths <<< "$env_value"
+
+    local env_value
+    env_value="$( str_tolower "$1" )"
+    local path_to_add
+    path_to_add="$( str_tolower "$2" )"
+
+    local -a env_paths
     local env_path
+
+    IFS="$path_separator" read -ra env_paths <<< "$env_value"
+
     for env_path in "${env_paths[@]+"${env_paths[@]}"}"; do
         if [ "$env_path" == "$path_to_add" ]; then
             return 0
         fi
     done
-    return 1
-}
 
-path_append() {
+    return 1
+)
+
+path_append() (
+    set -o errexit -o nounset -o pipefail
+
     if [ "$#" -ne 2 ]; then
         echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
         return 1
     fi
+
     local env_value="$1"
     local path_to_add="$2"
+
     if ! path_contains "$env_value" "$path_to_add"; then
         if [ -z "$env_value" ]; then
             echo "$path_to_add"
@@ -75,9 +99,11 @@ path_append() {
             echo "$path_separator$path_to_add"
         fi
     fi
-}
+)
 
-prompt_to_continue() {
+prompt_to_continue() (
+    set -o errexit -o nounset -o pipefail
+
     local prefix="${FUNCNAME[0]}"
     if [ "${#FUNCNAME[@]}" -gt 1 ]; then
         prefix="${FUNCNAME[1]}"
@@ -94,7 +120,7 @@ prompt_to_continue() {
             *)     continue ;;
         esac
     done
-}
+)
 
 ensure_reg_available() {
     if command -v reg.exe > /dev/null; then
@@ -106,12 +132,12 @@ ensure_reg_available() {
 }
 
 registry_set_string() (
+    set -o errexit -o nounset -o pipefail
+
     if [ "$#" -ne 3 ]; then
         echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA"
         return 1
     fi
-
-    set -o errexit
 
     ensure_reg_available
 
@@ -123,9 +149,10 @@ registry_set_string() (
 )
 
 fix_nt_symbol_path() (
-    set -o errexit
+    set -o errexit -o nounset -o pipefail
 
-    local tmp_dir="$( cygpath -aw "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" )"
+    local tmp_dir
+    tmp_dir="$( cygpath -aw "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" )"
 
     while [ "$#" -ne 0 ]; do
         local option="$1"

@@ -138,6 +138,9 @@ registry_set_string() {
     reg.exe add "$key_path" /v "$value_name" /t REG_SZ /d "$value_data" /f > /dev/null
 }
 
+key_path='HKCU\Environment'
+var_name='_NT_SYMBOL_PATH'
+
 fix_nt_symbol_path() {
     local tmp_dir
     tmp_dir="$( cygpath -aw "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" )"
@@ -199,21 +202,21 @@ fix_nt_symbol_path() {
     dump "    symbol store: $symbols_dir"
     dump "    Visual Studio project cache files: $vscache_dir"
 
-    local old_value="${_NT_SYMBOL_PATH-}"
-    dump "old _NT_SYMBOL_PATH value: $old_value"
+    local old_value="${!var_name-}"
+    dump "old $var_name value: $old_value"
     local new_value="$old_value"
 
     new_value+="$( path_append "$new_value" "$pdbs_dir" )"
     new_value+="$( path_append "$new_value" "$srv_str" )"
 
     [ "$new_value" == "$old_value" ] && return 0
-    dump "new _NT_SYMBOL_PATH value: $new_value"
+    dump "new $var_name value: $new_value"
 
     if [ -z "${skip_prompt+x}" ]; then
         prompt_to_continue || return 0
     fi
 
-    registry_set_string 'HKCU\Environment' '_NT_SYMBOL_PATH' "$new_value"
+    registry_set_string "$key_path" "$var_name" "$new_value"
 }
 
 fix_nt_symbol_path "$@"

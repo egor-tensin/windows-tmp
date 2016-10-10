@@ -17,6 +17,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+script_argv0="${BASH_SOURCE[0]}"
+script_dir="$( cd "$( dirname "$script_argv0" )" && pwd )"
+
 dump() {
     local prefix="${FUNCNAME[0]}"
 
@@ -39,7 +42,7 @@ str_tolower() {
 
 str_contains() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} STR SUB"
+        echo "usage: ${FUNCNAME[0]} STR SUB" || true
         return 1
     fi
 
@@ -54,7 +57,7 @@ readonly path_separator=';'
 
 path_contains() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" || true
         return 1
     fi
 
@@ -79,7 +82,7 @@ path_contains() {
 
 path_append() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR_PATH"
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" || true
         return 1
     fi
 
@@ -104,7 +107,7 @@ prompt_to_continue() {
     local prompt_reply
     while true; do
         echo -n "$prefix: continue? (y/n) "
-        read -r prompt_reply
+        IFS= read -r prompt_reply
         prompt_reply="$( str_tolower "$prompt_reply" )"
         case "$prompt_reply" in
             y|yes) return 0 ;;
@@ -125,7 +128,7 @@ ensure_reg_available() {
 
 registry_set_string() {
     if [ "$#" -ne 3 ]; then
-        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA"
+        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA" || true
         return 1
     fi
 
@@ -138,53 +141,79 @@ registry_set_string() {
     reg.exe add "$key_path" /v "$value_name" /t REG_SZ /d "$value_data" /f > /dev/null
 }
 
-key_path='HKCU\Environment'
-var_name='_NT_SYMBOL_PATH'
+tmp_dir=
 
-fix_nt_symbol_path() {
-    local tmp_dir
-    tmp_dir="$( cygpath -aw "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" )"
+update_tmp_dir() {
+    if [ "$#" -ne 1 ]; then
+        echo "usage: ${FUNCNAME[0]} DIR" || true
+        return 1
+    fi
 
+    tmp_dir="$( cygpath --windows --absolute "$1" )"
+}
+
+update_tmp_dir "$script_dir"
+
+readonly key_path='HKCU\Environment'
+readonly var_name='_NT_SYMBOL_PATH'
+
+parse_script_options() {
     while [ "$#" -ne 0 ]; do
-        local option="$1"
+        local key="$1"
         shift
 
-        case "$option" in
+        case "$key" in
+            -h|--help)
+                exit_with_usage=0
+                break
+                ;;
+
             -y|--yes)
-                local skip_prompt=
+                skip_prompt=1
                 continue
                 ;;
 
-            -h|--help)
-                local exit_with_usage=0
+            -d|--tmp-dir)
+                ;;
+
+            *)
+                dump "usage error: unrecognized parameter: $key" >&2
+                exit_with_usage=1
                 break
                 ;;
         esac
 
         if [ "$#" -eq 0 ]; then
-            dump "usage error: missing argument for parameter: $option" >&2
-            local exit_with_usage=1
+            dump "usage error: missing argument for parameter: $key" >&2
+            exit_with_usage=1
             break
         fi
 
-        case "$option" in
-            -d|--dir)
-                tmp_dir="$( cygpath -aw "$1" )"
-                shift
+        local value="$1"
+        shift
+
+        case "$key" in
+            -d|--tmp-dir)
+                update_tmp_dir "$value"
                 ;;
 
             *)
-                dump "usage error: unknown parameter: $option" >&2
-                local exit_with_usage=1
+                dump "usage error: unrecognized parameter: $key" >&2
+                exit_with_usage=1
                 break
                 ;;
         esac
     done
+}
 
-    if [ -n "${exit_with_usage+x}" ]; then
-        echo "usage: ${FUNCNAME[0]} [-h|--help] [-y|--yes] [-d|--dir TMP_DIR]"
-        return "${exit_with_usage:-0}"
-    fi
+exit_with_usage() {
+    echo "usage: $script_argv0 [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]" || true
+    exit "${exit_with_usage:-0}"
+}
+
+fix_nt_symbol_path() {
+    parse_script_options "$@"
+    [ -n "${exit_with_usage+x}" ] && exit_with_usage
 
     dump "temporary directory path: $tmp_dir"
 

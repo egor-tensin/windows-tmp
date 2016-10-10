@@ -34,9 +34,9 @@ dump() {
 }
 
 str_tolower() {
-    while [ "$#" -ne 0 ]; do
-        echo "$1" | tr '[:upper:]' '[:lower:]'
-        shift
+    local s
+    for s; do
+        echo "${s,,}" # | tr '[:upper:]' '[:lower:]'
     done
 }
 

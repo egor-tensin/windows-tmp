@@ -40,19 +40,6 @@ str_tolower() {
     done
 }
 
-str_contains() {
-    if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} STR SUB" || true
-        return 1
-    fi
-
-    local str="$1"
-    local sub
-    sub="$( printf '%q' "$2" )"
-
-    test "$str" != "${str#*$sub}"
-}
-
 readonly path_separator=';'
 
 path_contains() {

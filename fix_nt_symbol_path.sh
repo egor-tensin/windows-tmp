@@ -68,7 +68,7 @@ path_contains() {
 
     IFS="$path_separator" read -ra env_paths <<< "$env_value"
 
-    for env_path in "${env_paths[@]+"${env_paths[@]}"}"; do
+    for env_path in ${env_paths[@]+"${env_paths[@]}"}; do
         if [ "$env_path" == "$path_to_add" ]; then
             return 0
         fi

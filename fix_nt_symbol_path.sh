@@ -11,7 +11,7 @@
 # * adding the "symbols" directory as a local "symbol store", mirroring
 # Microsoft's http://msdl.microsoft.com/download/symbols.
 
-# usage: ./fix_nt_symbol_path.sh [-h|--help] [-y|--yes] [-d|--dir TMP_DIR]
+# usage: ./fix_nt_symbol_path.sh [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]
 
 set -o errexit
 set -o nounset

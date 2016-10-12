@@ -87,6 +87,7 @@ path_append() {
 
 prompt_to_continue() {
     local prefix="${FUNCNAME[0]}"
+
     if [ "${#FUNCNAME[@]}" -gt 1 ]; then
         prefix="${FUNCNAME[1]}"
     fi
@@ -108,7 +109,7 @@ ensure_reg_available() {
     if command -v reg.exe > /dev/null; then
         return 0
     else
-        dump "reg.exe could not be found" >&2
+        dump 'couldn'"'"'t find reg.exe' >&2
         return 1
     fi
 }
@@ -213,7 +214,7 @@ fix_nt_symbol_path() {
     local srv_str="SRV*$symbols_dir*http://msdl.microsoft.com/download/symbols"
     local vscache_dir="$tmp_dir\\vscache"
 
-    dump "directories:"
+    dump 'directories:'
     dump "    custom PDB files: $pdbs_dir"
     dump "    symbol store: $symbols_dir"
     dump "    Visual Studio project cache files: $vscache_dir"

@@ -17,8 +17,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-script_argv0="${BASH_SOURCE[0]}"
-script_dir="$( cd "$( dirname "$script_argv0" )" && pwd )"
+readonly script_argv0="${BASH_SOURCE[0]}"
+readonly script_dir="$( cd "$( dirname "$script_argv0" )" && pwd )"
 
 dump() {
     local prefix="${FUNCNAME[0]}"

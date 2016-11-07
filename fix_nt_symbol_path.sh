@@ -18,7 +18,7 @@ set -o nounset
 set -o pipefail
 
 readonly script_argv0="${BASH_SOURCE[0]}"
-readonly script_dir="$( cd "$( dirname "$script_argv0" )" && pwd )"
+readonly script_dir="$( cd "$( dirname -- "$script_argv0" )" && pwd )"
 
 dump() {
     local prefix="${FUNCNAME[0]}"
@@ -56,7 +56,7 @@ path_contains() {
     local -a env_paths
     local env_path
 
-    IFS="$path_separator" read -ra env_paths <<< "$env_value"
+    IFS="$path_separator" read -a env_paths -r <<< "$env_value"
 
     for env_path in ${env_paths[@]+"${env_paths[@]}"}; do
         if [ "$env_path" == "$path_to_add" ]; then
@@ -137,7 +137,7 @@ update_tmp_dir() {
         return 1
     fi
 
-    tmp_dir="$( cygpath --windows --absolute "$1" )"
+    tmp_dir="$( cygpath --windows --absolute -- "$1" )"
 }
 
 update_tmp_dir "$script_dir"

@@ -44,7 +44,7 @@ readonly path_separator=';'
 
 path_contains() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" || true
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2 || true
         return 1
     fi
 
@@ -69,7 +69,7 @@ path_contains() {
 
 path_append() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" || true
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2 || true
         return 1
     fi
 
@@ -109,14 +109,14 @@ ensure_reg_available() {
     if command -v reg.exe > /dev/null; then
         return 0
     else
-        dump 'couldn'"'"'t find reg.exe' >&2
+        dump "couldn't find reg.exe" >&2
         return 1
     fi
 }
 
 registry_set_string() {
     if [ "$#" -ne 3 ]; then
-        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA" || true
+        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA" >&2 || true
         return 1
     fi
 
@@ -133,7 +133,7 @@ tmp_dir=
 
 update_tmp_dir() {
     if [ "$#" -ne 1 ]; then
-        echo "usage: ${FUNCNAME[0]} DIR" || true
+        echo "usage: ${FUNCNAME[0]} DIR" >&2 || true
         return 1
     fi
 
@@ -155,24 +155,21 @@ parse_script_options() {
                 exit_with_usage=0
                 break
                 ;;
-
             -y|--yes)
                 skip_prompt=1
                 continue
                 ;;
-
             -d|--tmp-dir)
                 ;;
-
             *)
-                dump "usage error: unrecognized parameter: $key" >&2
+                dump "unrecognized parameter: $key" >&2
                 exit_with_usage=1
                 break
                 ;;
         esac
 
         if [ "$#" -eq 0 ]; then
-            dump "usage error: missing argument for parameter: $key" >&2
+            dump "missing argument for parameter: $key" >&2
             exit_with_usage=1
             break
         fi
@@ -184,9 +181,8 @@ parse_script_options() {
             -d|--tmp-dir)
                 update_tmp_dir "$value"
                 ;;
-
             *)
-                dump "usage error: unrecognized parameter: $key" >&2
+                dump "unrecognized parameter: $key" >&2
                 exit_with_usage=1
                 break
                 ;;
@@ -195,7 +191,10 @@ parse_script_options() {
 }
 
 exit_with_usage() {
-    echo "usage: $script_argv0 [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]" || true
+    local destfd=1
+    [ "${exit_with_usage:-0}" -ne 0 ] && destfd=2
+
+    echo "usage: $script_argv0 [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]" >&"$destfd" || true
     exit "${exit_with_usage:-0}"
 }
 

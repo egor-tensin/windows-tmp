@@ -17,7 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly script_argv0="${BASH_SOURCE[0]}"
+readonly script_argv0="$( printf '%q' "${BASH_SOURCE[0]}" )"
 readonly script_dir="$( cd "$( dirname -- "$script_argv0" )" && pwd )"
 
 dump() {

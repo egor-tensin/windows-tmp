@@ -56,6 +56,8 @@ path_contains() {
     local -a env_paths
     local env_path
 
+    # Thanks to this guy for this trick:
+    # http://stackoverflow.com/a/24426608/514684
     IFS="$path_separator" read -a env_paths -d '' -r < <( printf -- "%s$path_separator\\0" "$env_value" )
 
     for env_path in ${env_paths[@]+"${env_paths[@]}"}; do

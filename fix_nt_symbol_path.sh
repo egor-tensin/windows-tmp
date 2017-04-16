@@ -17,26 +17,26 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly script_argv0="$( printf -- '%q' "${BASH_SOURCE[0]}" )"
-readonly script_dir="$( cd -- "$( dirname -- "$script_argv0" )" && pwd )"
+script_name="$( basename -- "${BASH_SOURCE[0]}" )"
+readonly script_name
+script_dir="$( dirname -- "${BASH_SOURCE[0]}" )"
+script_dir="$( cd -- "$script_dir" && pwd )"
+readonly script_dir
 
 dump() {
     local prefix="${FUNCNAME[0]}"
+    [ "${#FUNCNAME[@]}" -gt 1 ] && prefix="${FUNCNAME[1]}"
 
-    if [ "${#FUNCNAME[@]}" -gt 1 ]; then
-        prefix="${FUNCNAME[1]}"
-    fi
-
-    while [ "$#" -ne 0 ]; do
-        echo "$prefix: $1" || true
-        shift
+    local msg
+    for msg; do
+        echo "$prefix: $msg"
     done
 }
 
 str_tolower() {
     local s
     for s; do
-        echo "${s,,}" # | tr '[:upper:]' '[:lower:]'
+        echo "${s,,}"
     done
 }
 
@@ -44,7 +44,7 @@ readonly path_separator=';'
 
 path_contains() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2 || true
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2
         return 1
     fi
 
@@ -56,7 +56,7 @@ path_contains() {
     local -a env_paths
     local env_path
 
-    IFS="$path_separator" read -a env_paths -r <<< "$env_value"
+    IFS="$path_separator" read -a env_paths -d '' -r < <( printf -- "%s$path_separator\\0" "$env_value" )
 
     for env_path in ${env_paths[@]+"${env_paths[@]}"}; do
         if [ "$env_path" == "$path_to_add" ]; then
@@ -69,7 +69,7 @@ path_contains() {
 
 path_append() {
     if [ "$#" -ne 2 ]; then
-        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2 || true
+        echo "usage: ${FUNCNAME[0]} ENV_VALUE DIR" >&2
         return 1
     fi
 
@@ -87,15 +87,11 @@ path_append() {
 
 prompt_to_continue() {
     local prefix="${FUNCNAME[0]}"
-
-    if [ "${#FUNCNAME[@]}" -gt 1 ]; then
-        prefix="${FUNCNAME[1]}"
-    fi
+    [ "${#FUNCNAME[@]}" -gt 1 ] && prefix="${FUNCNAME[1]}"
 
     local prompt_reply
     while true; do
-        echo -n "$prefix: continue? (y/n) "
-        IFS= read -r prompt_reply
+        IFS= read -p "$prefix: continue? (y/n) " -r prompt_reply
         prompt_reply="$( str_tolower "$prompt_reply" )"
         case "$prompt_reply" in
             y|yes) return 0 ;;
@@ -116,7 +112,7 @@ ensure_reg_available() {
 
 registry_set_string() {
     if [ "$#" -ne 3 ]; then
-        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA" >&2 || true
+        echo "usage: ${FUNCNAME[0]} KEY_PATH VALUE_NAME VALUE_DATA" >&2
         return 1
     fi
 
@@ -133,7 +129,7 @@ tmp_dir=
 
 update_tmp_dir() {
     if [ "$#" -ne 1 ]; then
-        echo "usage: ${FUNCNAME[0]} DIR" >&2 || true
+        echo "usage: ${FUNCNAME[0]} DIR" >&2
         return 1
     fi
 
@@ -142,8 +138,17 @@ update_tmp_dir() {
 
 update_tmp_dir "$script_dir"
 
-readonly key_path='HKCU\Environment'
-readonly var_name='_NT_SYMBOL_PATH'
+readonly env_key_path='HKCU\Environment'
+readonly env_var_name='_NT_SYMBOL_PATH'
+
+script_usage() {
+    local msg
+    for msg; do
+        echo "$script_name: $msg"
+    done
+
+    echo "usage: $script_name [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]"
+}
 
 parse_script_options() {
     while [ "$#" -ne 0 ]; do
@@ -152,8 +157,8 @@ parse_script_options() {
 
         case "$key" in
             -h|--help)
-                exit_with_usage=0
-                break
+                script_usage
+                exit 0
                 ;;
             -y|--yes)
                 skip_prompt=1
@@ -162,16 +167,14 @@ parse_script_options() {
             -d|--tmp-dir)
                 ;;
             *)
-                dump "unrecognized parameter: $key" >&2
-                exit_with_usage=1
-                break
+                script_usage "unrecognized parameter: $key" >&2
+                exit 1
                 ;;
         esac
 
         if [ "$#" -eq 0 ]; then
-            dump "missing argument for parameter: $key" >&2
-            exit_with_usage=1
-            break
+            script_usage "missing argument for parameter: $key" >&2
+            exit 1
         fi
 
         local value="$1"
@@ -182,26 +185,14 @@ parse_script_options() {
                 update_tmp_dir "$value"
                 ;;
             *)
-                dump "unrecognized parameter: $key" >&2
-                exit_with_usage=1
-                break
+                script_usage "unrecognized parameter: $key" >&2
+                exit 1
                 ;;
         esac
     done
 }
 
-exit_with_usage() {
-    local destfd=1
-    [ "${exit_with_usage:-0}" -ne 0 ] && destfd=2
-
-    echo "usage: $script_argv0 [-h|--help] [-y|--yes] [-d|--tmp-dir DIR]" >&"$destfd" || true
-    exit "${exit_with_usage:-0}"
-}
-
 fix_nt_symbol_path() {
-    parse_script_options "$@"
-    [ -n "${exit_with_usage+x}" ] && exit_with_usage
-
     dump "temporary directory path: $tmp_dir"
 
     if [ -z "${skip_prompt+x}" ]; then
@@ -218,21 +209,26 @@ fix_nt_symbol_path() {
     dump "    symbol store: $symbols_dir"
     dump "    Visual Studio project cache files: $vscache_dir"
 
-    local old_value="${!var_name-}"
-    dump "old $var_name value: $old_value"
+    local old_value="${!env_var_name-}"
+    dump "old $env_var_name value: $old_value"
     local new_value="$old_value"
 
     new_value+="$( path_append "$new_value" "$pdbs_dir" )"
     new_value+="$( path_append "$new_value" "$srv_str" )"
 
     [ "$new_value" == "$old_value" ] && return 0
-    dump "new $var_name value: $new_value"
+    dump "new $env_var_name value: $new_value"
 
     if [ -z "${skip_prompt+x}" ]; then
         prompt_to_continue || return 0
     fi
 
-    registry_set_string "$key_path" "$var_name" "$new_value"
+    registry_set_string "$env_key_path" "$env_var_name" "$new_value"
 }
 
-fix_nt_symbol_path "$@"
+main() {
+    parse_script_options "$@"
+    fix_nt_symbol_path
+}
+
+main "$@"
